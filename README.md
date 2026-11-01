@@ -1,0 +1,2 @@
+# Introduction
+AmpliFilter is a light-weight security tool for detecting UDP-based services vulnerable to becoming reflectors of amplification DDoS attacks, forked on EasyFilter V1.0 by Alemalakra and re-written in Python 3.
