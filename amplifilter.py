@@ -2,18 +2,19 @@
 
 import socket
 import sys
+import traceback
 
 if len(sys.argv) < 2:
-    print('[!] AmplifFilter 1.0 by xyzzklk.')
+    print('[!] AmpliFilter 1.1 by xyzzklk.')
     print('[!] Usage: filter.py <INPUT> <OUTPUT> <PROTOCOL> <MIN BYTES> <OUTPUT SYNTAX>')
-    print('[!] Protocols: chargen, ntp, quake, ssdp, ldap, dns, snmp, mdns, tftp, portmap, netbios, coap')
+    print('[!] Protocols: chargen, ntp, quake, ssdp, ldap, dns, snmp, mdns, tftp, portmap, netbios, coap, memcached')
     print('[!] Output syntax variables: [space], [ip], [bytes]')
     sys.exit()
 
 s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-s.settimeout(0.05)
+s.settimeout(10)
 
-# PayLoads.
+# Payloads.
 chargen = b'A'
 ntp = b'\x17\x00\x03\x2a\x00\x00\x00\x00'
 quake = b'\xFF\xFF\xFF\xFF\x67\x65\x74\x73\x74\x61\x74\x75\x73\x10'
@@ -26,18 +27,18 @@ tftp = b'\x00\x01\x2f\x78\x00\x6e\x65\x74\x61\x73\x63\x69\x69\x00'
 portmap = b'\x65\x72\x0A\x37\x00\x00\x00\x00\x00\x00\x00\x02\x00\x01\x86\xA0\x00\x00\x00\x02\x00\x00\x00\x04\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'
 netbios = b'\xE5\xD8\x00\x00\x00\x01\x00\x00\x00\x00\x00\x00\x20\x43\x4B\x41\x41\x41\x41\x41\x41\x41\x41\x41\x41\x41\x41\x41\x41\x41\x41\x41\x41\x41\x41\x41\x41\x41\x41\x41\x41\x41\x41\x41\x41\x00\x00\x21\x00\x01'
 coap = b'\x40\x01\x7d\x70\xbb\x2e\x77\x65\x6c\x6c\x2d\x6b\x6e\x6f\x77\x6e\x04\x63\x6f\x72\x65'
-memcache = b'\x00\x00\x00\x00\x00\x01\x00\x00stats\r\n'
+memcached = b'\x00\x00\x00\x00\x00\x01\x00\x00stats\r\n'
 
-file1 = sys.argv[1] #Input
-file2 = sys.argv[2] #Output
+inp_file = sys.argv[1]
+out_file = sys.argv[2]
 proto = sys.argv[3]
 size = int(sys.argv[4])
-syntax = sys.argv[5]
+out_syntax = sys.argv[5]
 
-with open(file1) as f:
-    ip_list = f.read().splitlines()
+with open(inp_file) as inp_file_hand:
+    ip_list = inp_file_hand.readlines()
 
-newfile = open(file2, 'w')
+out_file_hand = open(out_file, 'w')
 
 if proto == 'tftp':
     port = 69
@@ -77,38 +78,39 @@ elif proto == 'coap':
     payload = coap
 elif proto == 'memcache':
     port = 11211
-    payload = memcache
+    payload = memcached
 else:
     print('[!] Protocol is not available')
     sys.exit()
 
 # Start Loop
-c = 0
-servers = []
-while c < len(ip_list):
-    split = ip_list[c].split(' ') # Bytes ones, and non bytes ones
+idx = 0
+up_hosts = []
+while idx < len(ip_list):
+    split = ip_list[idx].strip().split(' ') # Bytes ones, and non bytes ones
     try:
         s.sendto(payload, (split[0], port))
         data, addr = s.recvfrom(65500)
         syntax_output = ''
 
         if len(data) >= size:
-            if any(addr[0] in item for item in servers):
+            if any(addr[0] in item for item in up_hosts):
                 # Already Exists
-                rip = 0
+                print('[!] Duplicated host {addr[0]}!')
             else:
                 # Add so.
                 print(f'[!] Recived Working Server: {addr[0]} Recived Bytes: {len(data)}')
-                syntax_output = syntax.replace("[space]", " ", 5) # 5 is fine.
+                syntax_output = out_syntax.replace("[space]", " ", 5) # 5 is fine.
                 syntax_output = syntax_output.replace("[bytes]", str(len(data)), 5) # 5 is fine.
                 syntax_output = syntax_output.replace("[ip]", str(addr[0]), 5) # 5 is fine.
-                newfile.write(str(syntax_output) + '\n')
-                servers.append(addr[0])
-    except (Exception, socket.error, socket.timeout):
-        I = 0
-    c += 1
+                out_file_hand.write(str(syntax_output) + '\n')
+                up_hosts.append(addr[0])
+        else:
+            print(f'{addr[0]}: {len(data)} is smaller than {size}, so skipping entirely!')
+    except (Exception, socket.error, socket.timeout) as e:
+        print(f'Error: {type(e).__name__}: {e}')
+        traceback.print_exc()
+    idx += 1
 
-newfile.close()
-with open(file2) as e:
-    count = e.read().splitlines()
-print(f'[!] Finished Filter saved to {file2} with {len(count)} working servers.')
+out_file_hand.close()
+print(f'[!] Finished Filter saved to {out_file} with {len(up_hosts)} working servers.')
