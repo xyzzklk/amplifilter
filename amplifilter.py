@@ -106,9 +106,9 @@ while idx < len(ip_list):
                 out_file_hand.write(str(syntax_output) + '\n')
                 up_hosts.append(addr[0])
         else:
-            print(f'{addr[0]}: {len(data)} is smaller than {size}, so skipping entirely!')
+            print(f'[!] {addr[0]}: {len(data)} is smaller than {size}, so skipping entirely!')
     except (Exception, socket.error, socket.timeout) as e:
-        print(f'Error: {type(e).__name__}: {e}')
+        print(f'[!] Error: {type(e).__name__}: {e}')
         traceback.print_exc()
     idx += 1
 
