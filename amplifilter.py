@@ -9,6 +9,7 @@ from pathlib import Path
 import socket
 import os
 import sys
+from dataclasses import dataclass
 
 def format_time_with_ms(dt: datetime.datetime) -> Text:
     return Text(dt.isoformat(sep=' ', timespec='milliseconds'))
@@ -148,6 +149,22 @@ PROTOCOL_CONFIGS = {
     'memcached': (11211, b'\x00\x00\x00\x00\x00\x01\x00\x00stats\r\n'),
 }
 
+@dataclass
+class FilterMetrics:
+    num_total_hosts: int = 0
+    num_up_hosts: int = 0
+    num_amps: int = 0
+    max_payload_af: float = 0.0
+    max_wire_af: float = 0.0
+
+    @property
+    def amp_hosts_pct(self) -> float:
+        return self.num_amps / self.num_total_hosts
+
+    @property
+    def up_hosts_pct(self) -> float:
+        return self.num_up_hosts / self.num_total_hosts
+
 def main(argv: list=None):
     parsed_args = arg_parser(argv)
     inp_f_path: Path = parsed_args.input_file
@@ -170,7 +187,7 @@ def main(argv: list=None):
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     s.settimeout(timeout)
 
-    num_amp: int = 0
+    sum_metrics = FilterMetrics()
 
     with(
         inp_f_path.open('r') as inp_file,
@@ -178,12 +195,14 @@ def main(argv: list=None):
     ):
         for line in inp_file:
             # Just in case the file is output from a previous scan result,
-            # where a line is like `1.1.1.1 528\n`
+            # where a line is like `1.1.1.1   528\n`
             host_ip = line.strip().split()[0]
+            sum_metrics.num_total_hosts += 1
             try:
                 s.sendto(payload, (host_ip, port))
                 data, resp_src_ip = s.recvfrom(65535)
                 req_payload_size, resp_payload_size = len(payload), len(data)
+                sum_metrics.num_up_hosts += 1
                 if resp_payload_size < r_threshold:
                     logging.info(
                         '%s: SKIPPING. Responded, but response payload size %s < threshold %s',
@@ -202,43 +221,27 @@ def main(argv: list=None):
                 )
                 out_file.flush()
                 os.fsync(out_file.fileno())
+
                 num_amp += 1
+                if payload_af > sum_metrics.max_payload_af:
+                    sum_metrics.max_payload_af = payload_af
+                if wire_af > sum_metrics.max_wire_af:
+                    sum_metrics.max_wire_af = wire_af
+
             except (socket.error, socket.timeout) as e:
                 logging.warning(
                     '%s: NETWORK ERROR - %s: %s', host_ip, type(e).__name__, e,
                 )
             except Exception as e:
-                logging.warning('%s: UNHANDLED EXCEPTION when handling:', exc_info=True)
+                logging.warning('%s: UNHANDLED EXCEPTION:', exc_info=True)
+
+    logging.info(
+        'FILTERING FINISHED. | Total Scanned Hosts: %s | Amplifying Hosts: %s | '
+        'Highest Payload Amplification Factor: %s | Highest Wire-Level (IPv4) '
+        'Amplification Factor: %s | Amplifiers out of All Scanned Hosts: %.2f%% | '
+        'Up hosts out of All Scanned Hosts: %.2f%% |',
+        sum_metrics.num_total_hosts, sum_metrics.num_amps, sum_metrics.max_payload_af,
+        sum_metrics.max_wire_af, sum_metrics.amp_hosts_pct, sum_metrics.up_hosts_pct
+    )
 
 main()
-
-# Start Loop
-idx = 0
-up_hosts = []
-while idx < len(ip_list):
-    split = ip_list[idx].strip().split(' ') # Bytes ones, and non bytes ones
-    try:
-        s.sendto(payload, (split[0], port))
-        data, addr = s.recvfrom(65500)
-        syntax_output = ''
-
-        if len(data) >= size:
-            if any(addr[0] in item for item in up_hosts):
-                # Already Exists
-                print('[!] Duplicated host {addr[0]}!')
-            else:
-                # Add so.
-                print(f'[!] Recived Working Server: {addr[0]} Recived Bytes: {len(data)}')
-                syntax_output = out_syntax.replace("[space]", " ", 5) # 5 is fine.
-                syntax_output = syntax_output.replace("[bytes]", str(len(data)), 5) # 5 is fine.
-                syntax_output = syntax_output.replace("[ip]", str(addr[0]), 5) # 5 is fine.
-                out_file_hand.write(str(syntax_output) + '\n')
-                up_hosts.append(addr[0])
-        else:
-            print(f'[!] {addr[0]}: {len(data)} is smaller than {size}, so skipping entirely!')
-    except (Exception, socket.error, socket.timeout) as e:
-        print(f'[!] Error: {type(e).__name__}: {e}')
-    idx += 1
-
-out_file_hand.close()
-print(f'[!] Finished Filter saved to {out_file} with {len(up_hosts)} working servers.')
