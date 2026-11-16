@@ -4,6 +4,7 @@ import logging
 import datetime
 from rich.logging import RichHandler
 from rich.text import Text
+from rich.highlighter import NullHighlighter
 import argparse
 from pathlib import Path
 import socket
@@ -21,7 +22,8 @@ logging.basicConfig(
         RichHandler(
             rich_tracebacks=True,
             log_time_format=format_time_with_ms,
-            show_path=False
+            show_path=False,
+            markup=True,
         )
     ]
 )
@@ -205,43 +207,46 @@ def main(argv: list=None):
                 sum_metrics.num_up_hosts += 1
                 if resp_payload_size < r_threshold:
                     logging.info(
-                        '%s: SKIPPING. Responded, but response payload size %s < threshold %s',
-                        host_ip, resp_payload_size, r_threshold
+                        '[bright_yellow]%s: SKIPPING. Responded, but response payload size '
+                        '%s < threshold %s[/]', host_ip, resp_payload_size, r_threshold
                     )
                     continue
                 payload_af = resp_payload_size / req_payload_size
-                wire_af = resp_payload_size + 28 / resp_payload_size + 28
+                wire_af = (resp_payload_size + 28) / (req_payload_size + 28)
                 logging.info(
-                    '%s: WORKING amplifier! AF (Payload): %s | BAF (IPv4 Wire): %s',
-                    host_ip, payload_af, wire_af
+                    '[green]%s: WORKING amplifier! | Resp Size: %s bytes | '
+                    'AF (Payload): %.2f | AF (IPv4 Wire): %.2f |[/]',
+                    host_ip, resp_payload_size, payload_af, wire_af
                 )
                 out_file.write(
                     out_syntax.replace('[ip]', host_ip)
-                    .replace('[bytes]', resp_payload_size) + '\n'
+                    .replace('[bytes]', str(resp_payload_size)) + '\n'
                 )
                 out_file.flush()
                 os.fsync(out_file.fileno())
 
-                num_amp += 1
+                sum_metrics.num_amps += 1
                 if payload_af > sum_metrics.max_payload_af:
                     sum_metrics.max_payload_af = payload_af
                 if wire_af > sum_metrics.max_wire_af:
                     sum_metrics.max_wire_af = wire_af
 
             except (socket.error, socket.timeout) as e:
-                logging.warning(
-                    '%s: NETWORK ERROR - %s: %s', host_ip, type(e).__name__, e,
+                logging.info(
+                    '[red]%s: NETWORK ERROR - %s: %s[/]', host_ip, type(e).__name__, e,
                 )
             except Exception as e:
-                logging.warning('%s: UNHANDLED EXCEPTION:', exc_info=True)
+                logging.warning('[bold red]%s: UNHANDLED EXCEPTION:[/]', exc_info=True)
 
-    logging.info(
-        'FILTERING FINISHED. | Total Scanned Hosts: %s | Amplifying Hosts: %s | '
-        'Highest Payload Amplification Factor: %s | Highest Wire-Level (IPv4) '
-        'Amplification Factor: %s | Amplifiers out of All Scanned Hosts: %.2f%% | '
-        'Up hosts out of All Scanned Hosts: %.2f%% |',
-        sum_metrics.num_total_hosts, sum_metrics.num_amps, sum_metrics.max_payload_af,
-        sum_metrics.max_wire_af, sum_metrics.amp_hosts_pct, sum_metrics.up_hosts_pct
+    logging.warning(
+        '[bright_yellow bold]FILTERING FINISHED. | Total Scanned Hosts: %s | Amplifying Hosts: %s | '
+        'Total Up Hosts: %s | '
+        'Highest Payload Amplification Factor: %.2f | Highest Wire-Level (IPv4) '
+        'Amplification Factor: %.2f | Amplifiers out of All Scanned Hosts: %.2f%% | '
+        'Up hosts out of All Scanned Hosts: %.2f%% |[/]',
+        sum_metrics.num_total_hosts, sum_metrics.num_amps, sum_metrics.num_up_hosts,
+        sum_metrics.max_payload_af, sum_metrics.max_wire_af,
+        sum_metrics.amp_hosts_pct * 100, sum_metrics.up_hosts_pct * 100,
     )
 
 main()
