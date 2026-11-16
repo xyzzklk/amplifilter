@@ -4,6 +4,7 @@ import logging
 import datetime
 from rich.logging import RichHandler
 from rich.text import Text
+import argparse
 from pathlib import Path
 import socket
 import sys
@@ -23,15 +24,65 @@ logging.basicConfig(
     ]
 )
 
-logging.info('Hey...')
-logging.error('Ha!')
+def positive_int(value: str) -> int:
+    int_value = int(value)
+    if int_value < 0:
+        raise argparse.ArgumentTypeError(f'Response size threshold cannot be less than 0 bytes!')
+    return int_value
 
-if len(sys.argv) < 2:
-    print('[!] AmpliFilter 1.1 by xyzzklk.')
-    print('[!] Usage: filter.py <INPUT> <OUTPUT> <PROTOCOL> <MIN BYTES> <OUTPUT SYNTAX>')
-    print('[!] Protocols: chargen, ntp, quake, ssdp, ldap, dns, snmp, mdns, tftp, portmap, netbios, coap, memcached')
-    print('[!] Output syntax variables: [space], [ip], [bytes]')
-    sys.exit()
+def arg_parser(argv: list=None) -> argparse.Namespace:
+
+    parser = argparse.ArgumentParser(
+        prog='amplifilter.py',
+        description='A filtering tool for DRDoS reflectors',
+    )
+
+    parser.add_argument(
+        '-i', '--input-file',
+        required=True,
+        type=Path,
+        help='File containing a list of IP addresses to detect',
+    )
+
+    parser.add_argument(
+        '-o', '--output-file',
+        required=True,
+        type=Path,
+        help='File to output filtered IPs to',
+    )
+
+    parser.add_argument(
+        '-p', '--protocol',
+        required=True,
+        choices=[
+            'chargen', 'ntp', 'quake', 'ssdp', 'ldap', 'dns', 'snmp', 'mdns',
+            'tftp', 'portmap', 'netbios', 'coap', 'memcached',
+        ],
+        help='Protocol to use when filtering',
+    )
+
+    parser.add_argument(
+        '-b', '--response-size-threshold',
+        type=positive_int,
+        default=None,
+        help='Threshold of response size in bytes. Any hosts replying with a'
+             'response under this size will be discarded as it is useless for'
+             'amplification. Defaults to be equal to the request payload size if not set.'
+    )
+
+    parser.add_argument(
+        '-s', '--output-syntax',
+        type=str,
+        default='[ip]',
+        help='Formatting syntax for output file. Variables: [ip], [bytes]. '
+             "Like: \"[ip] [bytes]\", \"[ip], [bytes]\", \"[ip]\"",
+    )
+
+    return parser.parse_args(argv)
+
+parsed_args = arg_parser()
+logging.info(parsed_args)
+input()
 
 s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 s.settimeout(10)
