@@ -7,6 +7,7 @@ from rich.text import Text
 import argparse
 from pathlib import Path
 import socket
+import os
 import sys
 
 def format_time_with_ms(dt: datetime.datetime) -> Text:
@@ -104,6 +105,8 @@ def arg_parser(argv: list=None) -> argparse.Namespace:
 
     return parser.parse_args(argv)
 
+# Bigger than max IPv4 UDP payload size 65507, but safe anyway
+UDP_MAX_RECV_SIZE = 65535
 
 PROTOCOL_CONFIGS = {
     'chargen': (19, b'A'),
@@ -161,72 +164,53 @@ def main(argv: list=None):
             'payload size of %s: %s!',
             proto.title(), r_threshold
         )
-    timeout = parsed_args.timeout
-    out_syntax = parsed_args.output_syntax
+    timeout: int = parsed_args.timeout
+    out_syntax: str = parsed_args.output_syntax
 
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    s.settimeout(10)
+    s.settimeout(timeout)
 
+    num_amp: int = 0
 
+    with(
+        inp_f_path.open('r') as inp_file,
+        out_f_path.open('w') as out_file,
+    ):
+        for line in inp_file:
+            # Just in case the file is output from a previous scan result,
+            # where a line is like `1.1.1.1 528\n`
+            host_ip = line.strip().split()[0]
+            try:
+                s.sendto(payload, (host_ip, port))
+                data, resp_src_ip = s.recvfrom(65535)
+                req_payload_size, resp_payload_size = len(payload), len(data)
+                if resp_payload_size < r_threshold:
+                    logging.info(
+                        '%s: SKIPPING. Responded, but response payload size %s < threshold %s',
+                        host_ip, resp_payload_size, r_threshold
+                    )
+                    continue
+                payload_af = resp_payload_size / req_payload_size
+                wire_af = resp_payload_size + 28 / resp_payload_size + 28
+                logging.info(
+                    '%s: WORKING amplifier! AF (Payload): %s | BAF (IPv4 Wire): %s',
+                    host_ip, payload_af, wire_af
+                )
+                out_file.write(
+                    out_syntax.replace('[ip]', host_ip)
+                    .replace('[bytes]', resp_payload_size) + '\n'
+                )
+                out_file.flush()
+                os.fsync(out_file.fileno())
+                num_amp += 1
+            except (socket.error, socket.timeout) as e:
+                logging.warning(
+                    '%s: NETWORK ERROR - %s: %s', host_ip, type(e).__name__, e,
+                )
+            except Exception as e:
+                logging.warning('%s: UNHANDLED EXCEPTION when handling:', exc_info=True)
 
 main()
-
-
-
-
-inp_file = sys.argv[1]
-out_file = sys.argv[2]
-proto = sys.argv[3]
-size = int(sys.argv[4])
-out_syntax = sys.argv[5]
-
-with open(inp_file) as inp_file_hand:
-    ip_list = inp_file_hand.readlines()
-
-out_file_hand = open(out_file, 'w')
-
-if proto == 'tftp':
-    port = 69
-    payload = tftp
-elif proto == 'portmap':
-    port = 111 
-    payload = portmap
-elif proto == 'netbios':
-    port = 137
-    payload = netbios
-elif proto == 'ntp':
-    port = 123
-    payload = ntp
-elif proto == 'mdns':
-    port = 5353
-    payload = mdns
-elif proto == 'chargen':
-    port = 19
-    payload = chargen
-elif proto == 'snmp':
-    port = 161
-    payload = snmp
-elif proto == 'dns':
-    port = 53
-    payload = dns
-elif proto == 'quake':
-    port = 27960
-    payload = quake
-elif proto == 'ssdp':
-    port = 1900
-    payload = ssdp
-elif proto == 'ldap':
-    port = 389
-    payload = ldap
-elif proto == 'coap':
-    port = 5683
-    payload = coap
-elif proto == 'memcache':
-    port = 11211
-    payload = memcached
-else:
-    print('[!] Protocol is not available')
-    sys.exit()
 
 # Start Loop
 idx = 0
