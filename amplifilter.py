@@ -1,8 +1,30 @@
 #!/usr/bin/env python3
 
+import logging
+import datetime
+from rich.logging import RichHandler
+from rich.text import Text
+from pathlib import Path
 import socket
 import sys
-import traceback
+
+def format_time_with_ms(dt: datetime.datetime) -> Text:
+    return Text(dt.isoformat(sep=' ', timespec='milliseconds'))
+
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(message)s',
+    handlers=[
+        RichHandler(
+            rich_tracebacks=True,
+            log_time_format=format_time_with_ms,
+            show_path=False
+        )
+    ]
+)
+
+logging.info('Hey...')
+logging.error('Ha!')
 
 if len(sys.argv) < 2:
     print('[!] AmpliFilter 1.1 by xyzzklk.')
@@ -109,7 +131,6 @@ while idx < len(ip_list):
             print(f'[!] {addr[0]}: {len(data)} is smaller than {size}, so skipping entirely!')
     except (Exception, socket.error, socket.timeout) as e:
         print(f'[!] Error: {type(e).__name__}: {e}')
-        traceback.print_exc()
     idx += 1
 
 out_file_hand.close()
