@@ -35,11 +35,22 @@ def legal_output_str(value: str) -> str:
         raise argparse.ArgumentTypeError('Output must at least contain detected host ([ip])!')
     return value
 
+class ArgExampleDefaultFormatter(
+    argparse.ArgumentDefaultsHelpFormatter,
+    argparse.RawDescriptionHelpFormatter
+):
+    pass
+
 def arg_parser(argv: list=None) -> argparse.Namespace:
 
     parser = argparse.ArgumentParser(
         prog='amplifilter.py',
-        description='A filtering tool for DRDoS reflectors',
+        description='A filtering tool for detecting DRDoS reflectors.',
+        formatter_class=ArgExampleDefaultFormatter,
+        epilog='''Examples:
+  %(prog)s -i dns_up_wan_hosts.txt -o reflectors.txt -p dns
+  %(prog)s -i ntp_up_wan_hosts.txt -o amplifiers.txt -p ntp -b 100 -t 10 -s "[ip], [bytes]"
+        '''
     )
 
     parser.add_argument(
@@ -76,10 +87,18 @@ def arg_parser(argv: list=None) -> argparse.Namespace:
     )
 
     parser.add_argument(
+        '-t', '--timeout',
+        type=int,
+        default=3,
+        help='Maximum time in seconds to wait before a host responds',
+    )
+
+    parser.add_argument(
         '-s', '--output-syntax',
         type=legal_output_str,
         default='[ip]',
-        help='Formatting syntax for output file. Variables: [ip], [bytes]. '
+        help='Formatting syntax for output file. Variables: [ip], [bytes], where [ip] '
+             'is IP of host and [bytes] is the recorded response size.'
              "Like: \"[ip] [bytes]\", \"[ip], [bytes]\", \"[ip]\"",
     )
 
@@ -142,14 +161,18 @@ def main(argv: list=None):
             'payload size of %s: %s!',
             proto.title(), r_threshold
         )
+    timeout = parsed_args.timeout
     out_syntax = parsed_args.output_syntax
-    logging.warning('%s %s %s %s %s %s %s', inp_f_path, out_f_path, proto, port, payload, r_threshold, out_syntax)
+
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    s.settimeout(10)
+
+
 
 main()
-input()
 
-s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-s.settimeout(10)
+
+
 
 inp_file = sys.argv[1]
 out_file = sys.argv[2]
