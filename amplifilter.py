@@ -4,6 +4,7 @@ import logging
 import datetime
 from rich.logging import RichHandler
 from rich.text import Text
+from rich.markup import escape
 import argparse
 from pathlib import Path
 import socket
@@ -11,28 +12,40 @@ import os
 from dataclasses import dataclass
 
 def format_time_with_ms(dt: datetime.datetime) -> Text:
+    '''
+    Function used by logger's `rich` handler to format time.
+    This overrides `logging`'s own timestamp.
+    '''
     return Text(dt.isoformat(sep=' ', timespec='milliseconds'))
 
 logging.basicConfig(
     level=logging.INFO,
+    # `RichHandler` adds timestamp & log level itself, so only adding message in format
     format='%(message)s',
     handlers=[
         RichHandler(
             rich_tracebacks=True,
             log_time_format=format_time_with_ms,
             show_path=False,
+            # Setting this so we can use things like [yellow][/] when logging messages
             markup=True,
         )
     ]
 )
 
 def positive_int(value: str) -> int:
+    '''
+    Custom validation function called by argparse to verify that value is `int` and postiive
+    '''
     int_value = int(value)
     if int_value < 0:
         raise argparse.ArgumentTypeError(f'Invalid value {value}: cannot be less than 0!')
     return int_value
 
 def legal_output_str(value: str) -> str:
+    '''
+    Custom validation function called by argparse to verify a legal scan result output syntax
+    '''
     if '[ip]' not in value:
         raise argparse.ArgumentTypeError('Output must at least contain detected host ([ip])!')
     return value
@@ -41,9 +54,14 @@ class ArgExampleDefaultFormatter(
     argparse.ArgumentDefaultsHelpFormatter,
     argparse.RawDescriptionHelpFormatter
 ):
+    '''
+    Custom argparse formatter to display default arg values & custom
+    examples in help messages at the same time
+    '''
     pass
 
 def arg_parser(argv: list=None) -> argparse.Namespace:
+    '''Defining & parsing all args here'''
 
     parser = argparse.ArgumentParser(
         prog='amplifilter.py',
@@ -102,6 +120,14 @@ def arg_parser(argv: list=None) -> argparse.Namespace:
         help='Formatting syntax for output file. Variables: [ip], [bytes], where [ip] '
              'is IP of host and [bytes] is the recorded response size.'
              "Like: \"[ip] [bytes]\", \"[ip], [bytes]\", \"[ip]\"",
+    )
+
+    parser.add_argument(
+        '-v', '--log-level',
+        choices=['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'],
+        type=str.upper,
+        default=logging.INFO,
+        help='Log level to display when program is running.'
     )
 
     return parser.parse_args(argv)
@@ -167,6 +193,7 @@ class FilterMetrics:
 
 def main(argv: list=None):
     parsed_args = arg_parser(argv)
+    logging.getLogger().setLevel(parsed_args.log_level)
     inp_f_path: Path = parsed_args.input_file
     out_f_path: Path = parsed_args.output_file
     proto: str = parsed_args.protocol
@@ -179,10 +206,17 @@ def main(argv: list=None):
         logging.warning(
             'Response size threshold not specified! Defaulting to same as '
             'payload size of %s: %s!',
-            proto.title(), r_threshold
+            proto.upper(), r_threshold
         )
     timeout: int = parsed_args.timeout
     out_syntax: str = parsed_args.output_syntax
+
+    logging.critical(
+        'Scanning hosts in %s | Saving results to %s | Protocol: %s | Port: %s | '
+        'Payload Size: %s | Filtering Threshold: %s | Timeout: %s | Output Syntax: %s |',
+        inp_f_path, out_f_path, proto, port, len(payload), r_threshold, timeout,
+        escape(out_syntax) # Because `[]`` might look like `rich` tags
+    )
 
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     s.settimeout(timeout)
