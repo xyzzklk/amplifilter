@@ -21,10 +21,13 @@
 # Introduction
 <big><big><big><big>_A_</big></big></big></big>_mpliFilter_ is a light-weight security tool for detecting UDP-based services vulnerable to becoming reflectors of amplification DDoS attacks, forked from EasyFilter v1.0 by Alemalakra and fully re-written from Python 2 to Python 3.
 
-<figure style="text-align: center;">
-    <img src="docs/assets/demo.png" alt="AmpliFilter CLI output example">
-    <figcaption><sub><i>AmpliFilter CLI output example, detecing for DNS reflectors</i></sub></figcaption>
-</figure>
+<div align="center">
+  <img src="docs/assets/demo.png" alt="AmpliFilter CLI output example" width="85%">
+  <br>
+  <sub><i>AmpliFilter CLI output example, detecting for DNS reflectors</i></sub>
+</div>
+
+<br>
 
 Currently, it automates scanning of a list of user-specified IPs to filter out ones that are vulnerable, and logs their amplification status for further processing.
 
