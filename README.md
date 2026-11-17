@@ -10,6 +10,7 @@
   <a href="#introduction">Introduction</a> •
   <a href="#supported-protocols">Protocols</a> •
   <a href="#quick-start">Quick Start</a> •
+  <a href="/docs/usage.md">Usage</a> •
   <a href="/docs/">Documentation</a> •
   <a href="#license">License</a> •
   <a href="/CONTRIBUTING.md">Contributing</a>
