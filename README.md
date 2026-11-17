@@ -31,16 +31,18 @@
 
 Currently, it automates scanning of a list of user-specified IPs to filter out ones that are vulnerable, and logs their amplification status for further processing.
 
-## Pairing with [_UDP Scanning Probe Templates_](https://github.com/xyzzklk/udp_scanning_probe_templates)
-It is _strongly_ recommended to use **AmpliFilter** as a downstream tool to process the preliminary scan results generated from our recommended tool and probe pack [**UDP Scanning Probe Templates**](https://github.com/xyzzklk/udp_scanning_probe_templates), using it to further filter a list of hosts that are already confirmed to be running the intended service, as this is standard practice. For more, see our [Usage](/docs/usage.md) documentation.
-
 > [!NOTE]
-> **AmpliFilter** is undergoing major changes of switching from the current single-threaded approach, directly borrowed from **EasyFilter**, to a more efficient asynchronous scanning mechanism. This is already planned, and will be the main feature change in the next major release (v2.0). For more info, see the current [Internal Implementation](/docs/internal-implementation.md) documentation.
+> **AmpliFilter** is undergoing major changes of switching from the current single-threaded approach, directly borrowed from **EasyFilter**, to a more efficient asynchronous scanning mechanism. This is already planned and will be the main feature change in the next major release (v2.0). For more info, see the current [Internal Implementation](/docs/internal-implementation.md) documentation.
+>
+> The most recent upcoming major release, v1.1, will be single-threaded and released soon, depending on, well, mainly [Xyzzklk](https://github.com/xyzzklk)'s availability.
 
 > [!WARNING]
 > **AmpliFilter** is designed and provided for **authorised security auditing, educational purposes and defensive research only**. Unauthorised scanning, probing or testing of systems without explicit prior written permission from the system owner is illegal and violates international computer crime laws.
 >
 > The author assumes **no liability** and is not responsible for any misuse or damage caused by this software. Use at your own risk.
+
+## Pairing with [_UDP Scanning Probe Templates_](https://github.com/xyzzklk/udp_scanning_probe_templates)
+It is _strongly_ recommended to use **AmpliFilter** as a downstream tool to process the preliminary scan results generated from our recommended tool and probe pack [**UDP Scanning Probe Templates**](https://github.com/xyzzklk/udp_scanning_probe_templates), using it to further filter a list of hosts that are already confirmed to be running the intended service, as this is standard practice. For more, see our [Usage](/docs/usage.md) documentation.
 
 # Features
 - Currently has out-of-the-box support for 13 common reflection protocols (DNS, NTP, SSDP, SNMP, LDAP, Memcached, and more).
