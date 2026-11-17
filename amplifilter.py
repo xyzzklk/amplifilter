@@ -4,12 +4,10 @@ import logging
 import datetime
 from rich.logging import RichHandler
 from rich.text import Text
-from rich.highlighter import NullHighlighter
 import argparse
 from pathlib import Path
 import socket
 import os
-import sys
 from dataclasses import dataclass
 
 def format_time_with_ms(dt: datetime.datetime) -> Text:
@@ -252,4 +250,12 @@ def main(argv: list=None):
             sum_metrics.amp_hosts_pct * 100, sum_metrics.up_hosts_pct * 100,
         )
 
-main()
+if __name__ == '__main__':
+    try:
+        main()
+    except KeyboardInterrupt:
+        logging.warning('User terminated...')
+    except Exception:
+        logging.warning(
+            'Uncaught error causing whole program to terminate!', exc_info=True
+        )
