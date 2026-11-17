@@ -238,15 +238,18 @@ def main(argv: list=None):
             except Exception as e:
                 logging.warning('[bold red]%s: UNHANDLED EXCEPTION:[/]', exc_info=True)
 
-    logging.warning(
-        '[bright_yellow bold]FILTERING FINISHED. | Total Scanned Hosts: %s | Amplifying Hosts: %s | '
-        'Total Up Hosts: %s | '
-        'Highest Payload Amplification Factor: %.2f | Highest Wire-Level (IPv4) '
-        'Amplification Factor: %.2f | Amplifiers out of All Scanned Hosts: %.2f%% | '
-        'Up hosts out of All Scanned Hosts: %.2f%% |[/]',
-        sum_metrics.num_total_hosts, sum_metrics.num_amps, sum_metrics.num_up_hosts,
-        sum_metrics.max_payload_af, sum_metrics.max_wire_af,
-        sum_metrics.amp_hosts_pct * 100, sum_metrics.up_hosts_pct * 100,
-    )
+    if sum_metrics.num_total_hosts == 0:
+        logging.warning('No hosts provided! Quitting.')
+    else:
+        logging.warning(
+            '[bright_yellow bold]FILTERING FINISHED. | Total Scanned Hosts: %s | Amplifying Hosts: %s | '
+            'Total Up Hosts: %s | '
+            'Highest Payload Amplification Factor: %.2f | Highest Wire-Level (IPv4) '
+            'Amplification Factor: %.2f | Amplifiers out of All Scanned Hosts: %.2f%% | '
+            'Up hosts out of All Scanned Hosts: %.2f%% |[/]',
+            sum_metrics.num_total_hosts, sum_metrics.num_amps, sum_metrics.num_up_hosts,
+            sum_metrics.max_payload_af, sum_metrics.max_wire_af,
+            sum_metrics.amp_hosts_pct * 100, sum_metrics.up_hosts_pct * 100,
+        )
 
 main()
