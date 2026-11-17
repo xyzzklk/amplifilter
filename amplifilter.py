@@ -77,14 +77,14 @@ def arg_parser(argv: list=None) -> argparse.Namespace:
         '-i', '--input-file',
         required=True,
         type=Path,
-        help='File containing a list of IP addresses to detect',
+        help='File containing a list of IP addresses to detect.',
     )
 
     parser.add_argument(
         '-o', '--output-file',
         required=True,
         type=Path,
-        help='File to output filtered IPs to',
+        help='File to output filtered IPs & results to.',
     )
 
     parser.add_argument(
@@ -94,7 +94,7 @@ def arg_parser(argv: list=None) -> argparse.Namespace:
             'chargen', 'ntp', 'quake', 'ssdp', 'ldap', 'dns', 'snmp', 'mdns',
             'tftp', 'portmap', 'netbios', 'coap', 'memcached',
         ],
-        help='Protocol to use when filtering',
+        help='Protocol to use when filtering.',
     )
 
     parser.add_argument(
@@ -110,7 +110,7 @@ def arg_parser(argv: list=None) -> argparse.Namespace:
         '-t', '--timeout',
         type=positive_int,
         default=3,
-        help='Maximum time in seconds to wait before a host responds',
+        help='Maximum time in seconds to wait before a host responds.',
     )
 
     parser.add_argument(
@@ -136,42 +136,58 @@ def arg_parser(argv: list=None) -> argparse.Namespace:
 UDP_MAX_RECV_SIZE = 65535
 
 PROTOCOL_CONFIGS = {
+    # Actual content of CHARGEN request is generally ignored,
+    # so sending the least amount of data
     'chargen': (19, b'A'),
+    # NTP V2, mode 7 (Private/Control), dear classical `monlist`
     'ntp': (123, b'\x17\x00\x03\x2a\x00\x00\x00\x00'),
+    # Quake connectionless packet header, `getstatus` command
     'quake': (27960, b'\xFF\xFF\xFF\xFF\x67\x65\x74\x73\x74\x61\x74\x75\x73\x10'),
+    # SSDP M-search discovery to all devices, to multicast addr 239.255.255.250
     'ssdp': (
         1900,
         b'\x4d\x2d\x53\x45\x41\x52\x43\x48\x20\x2a\x20\x48\x54\x54\x50\x2f\x31\x2e\x31\x0D\x0A\x48\x6f\x73\x74\x3a\x32\x33\x39\x2e\x32\x55\x35\x35\x2e\x32\x35\x35\x2e\x32\x35\x30\x3a\x31\x39\x30\x30\x0D\x0A\x53\x54\x3a\x73\x73\x64\x70\x3a\x61\x6c\x6c\x0D\x0A\x4d\x61\x6e\x3a\x22\x73\x73\x64\x70\x3a\x64\x69\x73\x63\x6f\x76\x65\x72\x22\x0D\x0A\x4d\x58\x3a\x33\x0D\x0A\x0D\x0A'
     ),
+    # SNMPv2c GetBulk, uses community string `public`
     'snmp':(
         161, 
         b'\x30\x37\x02\x01\x01\x04\x06\x70\x75\x62\x6c\x69\x63\xa5\x2a\x02\x04\x06\x29\x07\x31\x02\x01\x00\x02\x01\x0a\x30\x1c\x30\x0b\x06\x07\x2b\x06\x01\x02\x01\x01\x01\x05\x00\x30\x0d\x06\x09\x2b\x06\x01\x02\x01\x01\x09\x01\x03\x05\x00'
     ),
+    # DNS ANY query to root zone/root domain (`.`), with EDNS0
     'dns': (
         53,
         b'\xc4\x75\x01\x00\x00\x01\x00\x00\x00\x00\x00\x01\x00\x00\xff\x00\x01\x00\x00\x29\x23\x28\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'
     ),
+    # LDAP search request for CLDAP, search `objectclass` with wildcard (`*`)
     'ldap': (
         389,
         b'\x30\x84\x00\x00\x00\x2d\x02\x01\x01\x63\x84\x00\x00\x00\x24\x04\x00\x0a\x01\x00\x0a\x01\x00\x02\x01\x00\x02\x01\x00\x01\x01\x00\x87\x0b\x6f\x62\x6a\x65\x63\x74\x63\x6c\x61\x73\x73\x30\x84\x00\x00\x00\x00\x00'
     ),
+    # Multicast mDNS pointer record query to all devices on LAN
     'mdns': (
         5353, 
         b'\x00\x00\x00\x00\x00\x01\x00\x00\x00\x00\x00\x00\x09\x5F\x73\x65\x72\x76\x69\x63\x65\x73\x07\x5F\x64\x6E\x73\x2D\x73\x64\x04\x5F\x75\x64\x70\x05\x6C\x6F\x63\x61\x6C\x00\x00\x0C\x00\x01'
     ),
+    # TFTP Read Request to `/x`, instructing to decode with NETASCII
     'tftp': (69, b'\x00\x01\x2f\x78\x00\x6e\x65\x74\x61\x73\x63\x69\x69\x00'),
+    # ONC RPC Portmapper request, invoking DUMP to list all internal services with AUTH_NULL
     'portmap': (
         111, 
         b'\x65\x72\x0A\x37\x00\x00\x00\x00\x00\x00\x00\x02\x00\x01\x86\xA0\x00\x00\x00\x02\x00\x00\x00\x04\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'
     ),
+    # NBSTAT query, causing target to list domain/WORKGROUP info, MAC, and active
+    # NETBIOS services like if it's runing a DC, file server... etc
     'netbios': (
         137,
         b'\xE5\xD8\x00\x00\x00\x01\x00\x00\x00\x00\x00\x00\x20\x43\x4B\x41\x41\x41\x41\x41\x41\x41\x41\x41\x41\x41\x41\x41\x41\x41\x41\x41\x41\x41\x41\x41\x41\x41\x41\x41\x41\x41\x41\x41\x41\x00\x00\x21\x00\x01'
     ),
+    # CoAP v1, `GET /.well-known/core` (CON), forces server to respond resources
+    # an IoT device exposes
     'coap': (
         5683,
         b'\x40\x01\x7d\x70\xbb\x2e\x77\x65\x6c\x6c\x2d\x6b\x6e\x6f\x77\x6e\x04\x63\x6f\x72\x65'
     ),
+    # Memcached stats command, returns huge list of server statistics info
     'memcached': (11211, b'\x00\x00\x00\x00\x00\x01\x00\x00stats\r\n'),
 }
 
