@@ -31,7 +31,7 @@ logging.basicConfig(
 def positive_int(value: str) -> int:
     int_value = int(value)
     if int_value < 0:
-        raise argparse.ArgumentTypeError('Response size threshold cannot be less than 0 bytes!')
+        raise argparse.ArgumentTypeError(f'Invalid value {value}: cannot be less than 0!')
     return int_value
 
 def legal_output_str(value: str) -> str:
@@ -92,7 +92,7 @@ def arg_parser(argv: list=None) -> argparse.Namespace:
 
     parser.add_argument(
         '-t', '--timeout',
-        type=int,
+        type=positive_int,
         default=3,
         help='Maximum time in seconds to wait before a host responds',
     )
