@@ -193,6 +193,7 @@ PROTOCOL_CONFIGS = {
 
 @dataclass
 class FilterMetrics:
+    '''Pure data class for holding filtering statistic data'''
     num_total_hosts: int = 0
     num_up_hosts: int = 0
     num_amps: int = 0
@@ -208,6 +209,8 @@ class FilterMetrics:
         return self.num_up_hosts / self.num_total_hosts
 
 def main(argv: list=None):
+
+    # Retrieve args and assign them properly
     parsed_args = arg_parser(argv)
     logging.getLogger().setLevel(parsed_args.log_level)
     inp_f_path: Path = parsed_args.input_file
@@ -218,6 +221,7 @@ def main(argv: list=None):
     port, payload = PROTOCOL_CONFIGS[proto]
     r_threshold: int = parsed_args.response_size_threshold
     if r_threshold is None:
+        # If response size threshold not set, default to >= payload size for meaningful amp
         r_threshold = len(payload)
         logging.warning(
             'Response size threshold not specified! Defaulting to same as '
@@ -227,6 +231,7 @@ def main(argv: list=None):
     timeout: int = parsed_args.timeout
     out_syntax: str = parsed_args.output_syntax
 
+    logging.critical('AmpliFilter started. Github: https://github.com/xyzzklk/amplifilter')
     logging.critical(
         'Scanning hosts in %s | Saving results to %s | Protocol: %s | Port: %s | '
         'Payload Size: %s | Filtering Threshold: %s | Timeout: %s | Output Syntax: %s |',
@@ -234,9 +239,11 @@ def main(argv: list=None):
         escape(out_syntax) # Because `[]`` might look like `rich` tags
     )
 
+    # Single socket reused throughout whole scanning
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     s.settimeout(timeout)
 
+    # Create empty datasheet for summary metrics
     sum_metrics = FilterMetrics()
 
     with(
@@ -250,22 +257,30 @@ def main(argv: list=None):
             sum_metrics.num_total_hosts += 1
             try:
                 s.sendto(payload, (host_ip, port))
-                data, resp_src_ip = s.recvfrom(65535)
+                data = s.recvfrom(65535)[0]
                 req_payload_size, resp_payload_size = len(payload), len(data)
                 sum_metrics.num_up_hosts += 1
+
+                # Skip up but negatively amplifying hosts
                 if resp_payload_size < r_threshold:
                     logging.info(
                         '[bright_yellow]%s: SKIPPING. Responded, but response payload size '
                         '%s < threshold %s[/]', host_ip, resp_payload_size, r_threshold
                     )
                     continue
+
+                # If amps, calculate amplification factor
                 payload_af = resp_payload_size / req_payload_size
+                # Wire-Level AF needs IPv4 headers (20 bytes, assuming no options) +
+                # UDP Headers (8 bytes) = 28 bytes
                 wire_af = (resp_payload_size + 28) / (req_payload_size + 28)
                 logging.info(
                     '[green]%s: WORKING amplifier! | Resp Size: %s bytes | '
                     'AF (Payload): %.2f | AF (IPv4 Wire): %.2f |[/]',
                     host_ip, resp_payload_size, payload_af, wire_af
                 )
+
+                # Make sure a single write pushes to disk
                 out_file.write(
                     out_syntax.replace('[ip]', host_ip)
                     .replace('[bytes]', str(resp_payload_size)) + '\n'
@@ -273,6 +288,7 @@ def main(argv: list=None):
                 out_file.flush()
                 os.fsync(out_file.fileno())
 
+                # Update summary metrics
                 sum_metrics.num_amps += 1
                 if payload_af > sum_metrics.max_payload_af:
                     sum_metrics.max_payload_af = payload_af
@@ -286,9 +302,11 @@ def main(argv: list=None):
             except Exception as e:
                 logging.warning('[bold red]%s: UNHANDLED EXCEPTION:[/]', exc_info=True)
 
+    # If input file is empty...
     if sum_metrics.num_total_hosts == 0:
         logging.warning('No hosts provided! Quitting.')
     else:
+    # Not empty, then properly report metrics
         logging.warning(
             '[bright_yellow bold]FILTERING FINISHED. | Total Scanned Hosts: %s | Amplifying Hosts: %s | '
             'Total Up Hosts: %s | '
