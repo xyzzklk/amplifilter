@@ -28,7 +28,8 @@
 
 Currently, it automates scanning of a list of user-specified IPs to filter out ones that are vulnerable, and logs their amplification status for further processing.
 
-<span style="color: red;">It is _strongly_ recommended to use **AmpliFilter** as a downstream tool to process the preliminary scan results generated from our recommended tool and probe pack [**UDP Scanning Probe Templates**](https://github.com/xyzzklk/udp_scanning_probe_templates), using it to further filter a list of hosts that are already confirmed to be running the intended service, as this is standard practice. For more, see our [Usage](/docs/usage.md) documentation.</span>
+## Pairing with [_UDP Scanning Probe Templates_](https://github.com/xyzzklk/udp_scanning_probe_templates)
+It is _strongly_ recommended to use **AmpliFilter** as a downstream tool to process the preliminary scan results generated from our recommended tool and probe pack [**UDP Scanning Probe Templates**](https://github.com/xyzzklk/udp_scanning_probe_templates), using it to further filter a list of hosts that are already confirmed to be running the intended service, as this is standard practice. For more, see our [Usage](/docs/usage.md) documentation.
 
 > [!NOTE]
 > **AmpliFilter** is undergoing major changes of switching from the current single-threaded approach, directly borrowed from **EasyFilter**, to a more efficient asynchronous scanning mechanism. This is already planned, and will be the main feature change in the next major release (v2.0). For more info, see the current [Internal Implementation](/docs/internal-implementation.md) documentation.
