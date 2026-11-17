@@ -101,8 +101,8 @@ def arg_parser(argv: list=None) -> argparse.Namespace:
         '-b', '--response-size-threshold',
         type=positive_int,
         default=None,
-        help='Threshold of response size in bytes. Any hosts replying with a'
-             'response under this size will be discarded as it is useless for'
+        help='Threshold of response size in bytes. Any hosts replying with a '
+             'response under this size will be discarded as it is useless for '
              'amplification. Defaults to be equal to the request payload size if not set.'
     )
 
