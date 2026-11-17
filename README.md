@@ -12,8 +12,8 @@
   <a href="#quick-start">Quick Start</a> •
   <a href="/docs/usage.md">Usage</a> •
   <a href="/docs/">Documentation</a> •
-  <a href="#license">License</a> •
-  <a href="/CONTRIBUTING.md">Contributing</a>
+  <a href="#contributing">Contributing</a> •
+  <a href="#license">License</a> 
 </p>
 
 ***
@@ -77,7 +77,7 @@ If you have better payloads that you want to provide, feel welcome to [contribut
 The following guide is a quick start guide. For detailed and advanced usage, see our [Usage](/docs/usage.md) documentation.
 
 ## Before You Start
-As indicated before, it is _strongly_ recommended that you only feed AmpliFilter the results produced from a preliminary scan, especially with one of our recommended probes and `zmap`. For example, using [this](https://github.com/xyzzklk/udp_scanning_probe_templates/blob/main/example_scan_dns_lan_range.sh) pre-built quick-scan script with [this](https://github.com/xyzzklk/udp_scanning_probe_templates/blob/main/probe_templates/dns_53.pkt) probe payload.
+As indicated before, it is _strongly_ recommended that you only feed AmpliFilter the results produced from a preliminary scan, especially with [one of our recommended probes](https://github.com/xyzzklk/udp_scanning_probe_templates/tree/main/probe_templates) and `zmap`. For example, using [this](https://github.com/xyzzklk/udp_scanning_probe_templates/blob/main/example_scan_dns_lan_range.sh) pre-built quick-scan script with [this](https://github.com/xyzzklk/udp_scanning_probe_templates/blob/main/probe_templates/dns_53.pkt) probe payload.
 
 ## Installing
 First, clone the repository.
@@ -153,5 +153,14 @@ NTP scan with custom response size threshold (`-b`), socket timeout (`-t`), outp
 ```shell
 python amplifilter.py -i targets.txt -o amplifiers.txt -p ntp -b 100 -t 10 -s "[ip], [bytes]" -v DEBUG
 ```
+
+# Contributing
+You are more than welcome to contribute! No matter if it's
+- Bug fixes
+- New features and feature suggestions
+- New payload improvements
+
+Feel free to contribute and read our [Contributing Guide](/CONTRIBUTING.md).
+
 # License
 AmpliFilter is distributed under the MIT License. See [LICENSE.md](/LICENSE.md) for more information.
