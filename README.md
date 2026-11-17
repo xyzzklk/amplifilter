@@ -69,6 +69,8 @@ Note that currently there's only one default payload (which might not be optimis
 If you have better payloads that you want to provide, feel welcome to [contribute](/CONTRIBUTING.md).
 
 # Quick Start
+The following guide is a quick start guide. For detailed and advanced usage, see our [Usage](/docs/usage.md) documentation.
+
 ## Before You Start
 As indicated before, it is _strongly_ recommended that you only feed AmpliFilter the results produced from a preliminary scan, especially with one of our recommended probes and `zmap`. For example, using [this](https://github.com/xyzzklk/udp_scanning_probe_templates/blob/main/example_scan_dns_lan_range.sh) pre-built quick-scan script with [this](https://github.com/xyzzklk/udp_scanning_probe_templates/blob/main/probe_templates/dns_53.pkt) probe payload.
 
