@@ -27,4 +27,21 @@ One IP each line. AmpliFilter is designed to pick up this text-file format autom
 
 Simply wait until Zmap finishes its job.
 
-## 
+## Detailed Usage
+### Install
+#### Option 1: Cloning the Repo
+Clone the entire repository
+```shell
+git clone "https://github.com/xyzzklk/amplifilter.git"
+```
+
+Enter the repository's working folder, and install dependencies.
+```shell
+cd amplifilter
+python -m pip install -r requirements.txt
+```
+
+Then run the following command to confirm that the script can execute normally.
+```shell
+python amplifilter.py --help
+```
