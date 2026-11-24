@@ -29,6 +29,8 @@ Simply wait until Zmap finishes its job.
 
 ## Detailed Usage
 ### Install
+The current latest version, 1.1 is compatible with Python 3.14.
+
 #### Option 1: Cloning the Repo
 Clone the entire repository
 ```shell
@@ -41,7 +43,25 @@ cd amplifilter
 python -m pip install -r requirements.txt
 ```
 
-Then run the following command to confirm that the script can execute normally.
+Confirm that the script can execute normally by displaying its help menu.
 ```shell
-python amplifilter.py --help
+python amplifilter.py -h
 ```
+
+#### Option 2: Choosing a Compiled Release
+Go to the [Releases](https://github.com/xyzzklk/amplifilter/releases) page to select the latest version of release compatible with your OS.
+
+Download and extract the archive, then use the following command to test if the binary runs.
+
+Windows:
+```powrshell
+./amplifilter.exe -h
+```
+
+Linux:
+```shell
+./amplifilter -h
+```
+
+### Command-line Syntax
+The main executable is run from command line with arguments.
